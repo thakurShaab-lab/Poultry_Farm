@@ -1,0 +1,27 @@
+# Ignore node_modules
+node_modules/
+
+# Ignore static files
+uploads/
+
+# Ignore environment variables
+.env
+
+# Ignore log files
+*.log
+
+# Ignore system files
+.DS_Store
+
+# Ignore IDE folders
+.idea/
+.vscode/
+
+# Ignore build directories
+build/
+dist/
+
+# Ignore MacOS system files
+.DS_Store
+
+#52.76.199.149  nodeapp=>    WebNod25jS
