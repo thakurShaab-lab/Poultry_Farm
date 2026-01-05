@@ -1,0 +1,583 @@
+const bcrypt = require('bcryptjs')
+const { body } = require('express-validator')
+const fs = require('fs')
+const path = require('path')
+const validator = require("validator")
+const xss = require('xss')
+const crypto = require('crypto')
+const jwt = require('jsonwebtoken')
+const authModel = require('../../model/auth/auth')
+const locationModel = require('../../model/location/location')
+
+const registerValidation = [
+
+    body('farm_name')
+        .trim()
+        .notEmpty().withMessage('Farm name is required')
+        .isLength({ min: 2, max: 255 }).withMessage('Farm name must be between 2–255 characters'),
+
+    body('contact_person')
+        .trim()
+        .notEmpty().withMessage('Contact person is required')
+        .isLength({ min: 2, max: 80 }).withMessage('Contact person must be between 2–80 characters'),
+
+    body('email')
+        .trim()
+        .notEmpty().withMessage('Email is required')
+        .isEmail().withMessage('Invalid email')
+        .normalizeEmail(),
+
+    body('mobile_number')
+        .trim()
+        .notEmpty().withMessage('Mobile number is required')
+        .isMobilePhone('any').withMessage('Invalid mobile number'),
+
+    body('location_id')
+        .notEmpty().withMessage('Location is required')
+        .isInt().withMessage('Location ID must be numeric'),
+
+    body('address')
+        .optional()
+        .trim()
+        .isLength({ max: 255 }).withMessage('Address too long'),
+
+    body('password')
+        .notEmpty().withMessage('Password is required')
+        .isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+
+    body('confirm_password')
+        .notEmpty().withMessage('Confirm password is required')
+        .custom((value, { req }) => {
+            if (value !== req.body.password) {
+                throw new Error('Passwords do not match')
+            }
+            return true
+        }),
+    body('agree')
+        .notEmpty().withMessage('Agreement is required')
+        .custom(value => {
+            if (value !== 'true' && value !== true) {
+                throw new Error('You must accept terms and conditions')
+            }
+            return true
+        })
+]
+
+const loginValidation = [
+    body('email')
+        .trim()
+        .notEmpty().withMessage('Email is required')
+        .isEmail().withMessage('Invalid email')
+        .normalizeEmail(),
+
+    body('password')
+        .notEmpty().withMessage('Password is required')
+        .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+]
+
+const SALT_ROUNDS = 12
+
+const deleteFile = (filePath) => {
+    if (filePath && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath)
+    }
+}
+
+const authController = {
+
+    register: async (req, res) => {
+        let uploadedFilePath = null
+
+        try {
+            if (req.file && req.file.path) {
+                uploadedFilePath = req.file.path
+            }
+
+            const { farm_name, contact_person, email, mobile_number, location_id, address, password, confirm_password } = req.body
+
+            if (!email || !validator.isEmail(email)) {
+                deleteFile(uploadedFilePath)
+                return res.status(201).json({
+                    success: false,
+                    message: "Invalid email format"
+                })
+            }
+
+            if (!password || password.length < 6) {
+                deleteFile(uploadedFilePath)
+                return res.status(201).json({
+                    success: false,
+                    message: "Password must be at least 6 characters"
+                })
+            }
+
+            if (password !== confirm_password) {
+                deleteFile(uploadedFilePath)
+                return res.status(201).json({
+                    success: false,
+                    message: "Password and confirm password do not match"
+                })
+            }
+
+            const emailExists = await authModel.findByUsername(email)
+            if (emailExists) {
+                deleteFile(uploadedFilePath)
+                return res.status(201).json({
+                    success: false,
+                    message: "Email already registered"
+                })
+            }
+
+            const mobileExists = await authModel.findByMobile(mobile_number)
+            if (mobileExists) {
+                deleteFile(uploadedFilePath)
+                return res.status(201).json({
+                    success: false,
+                    message: "Mobile number already registered"
+                })
+            }
+
+            const location = await locationModel.getById(Number(location_id))
+            if (!location) {
+                deleteFile(uploadedFilePath)
+                return res.status(201).json({
+                    success: false,
+                    message: "Invalid location"
+                })
+            }
+
+            const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS)
+
+            const data = {
+                user_name: email,
+                password: hashedPassword,
+                farm_name,
+                first_name: contact_person,
+                mobile_number,
+                location: location.location_name,
+                location_id: location.location_id,
+                address,
+                customer_photo: req.file ? req.file.filename : null,
+                status: '1',
+                is_verified: '0',
+                login_type: 'normal',
+                ip_address: req.ip,
+                account_created_date: new Date()
+            }
+
+            await authModel.create(data)
+
+            return res.status(201).json({
+                success: true,
+                message: 'Registration successful',
+                email: email
+            })
+
+        } catch (err) {
+            deleteFile(uploadedFilePath)
+
+            return res.status(201).json({
+                success: false,
+                message: err.message || 'Registration failed'
+            })
+        }
+    },
+
+    login: async (req, res) => {
+        try {
+            const { email, password } = req.body
+
+            const safeEmail = xss(email)
+
+            if (!email || !validator.isEmail(email)) {
+                return res.status(201).json({
+                    success: false,
+                    message: "Invalid email format"
+                })
+            }
+
+            const user = await authModel.findByUsername(safeEmail)
+            if (!user) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Invalid email or password'
+                })
+            }
+
+            if (user.is_blocked === '1') {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Account is blocked'
+                })
+            }
+
+            const match = await bcrypt.compare(password, user.password)
+            if (!match) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Invalid password'
+                })
+            }
+
+            const ACCESS_SECRET = process.env.ACCESS_SECRET
+            const ACCESS_EXPIRES_IN = process.env.ACCESS_EXPIRES_IN || '7d'
+
+            const accessToken = jwt.sign(
+                {
+                    id: user.customers_id,
+                    email: user.user_name,
+                    type: user.user_type
+                },
+                ACCESS_SECRET,
+                { expiresIn: ACCESS_EXPIRES_IN }
+            )
+
+            return res.status(200).json({
+                success: true,
+                message: 'Login successful',
+                accessToken: accessToken
+            })
+
+        } catch (err) {
+            return res.status(500).json({
+                success: false,
+                message: 'Login failed'
+            })
+        }
+    },
+
+    logout: async (req, res) => {
+        try {
+            return res.status(201).json({
+                success: true,
+                message: 'Logged out successfully. Please remove the token from your client.'
+            })
+        } catch (err) {
+            console.error(err)
+            return res.status(201).json({
+                success: false,
+                message: 'Logout failed'
+            })
+        }
+    },
+
+    getUser: async (req, res) => {
+        try {
+            const userId = req.user?.id
+            if (!userId) {
+                return res.status(201).json({ success: false, message: 'Unauthorized' })
+            }
+
+            const user = await authModel.findById(userId)
+
+            if (!user) {
+                return res.status(201).json({ success: false, message: 'User not found' })
+            }
+
+            let image_url = ''
+            if (user.customer_photo) {
+                const host = req.get("host").split(":")[0]
+                const baseURL = `${req.protocol}://${host}`
+                image_url = user.customer_photo ? `${baseURL}/poultry_farming/uploaded_files/customer_images/${user.customer_photo}` : `${baseURL}/poultry_farming/uploaded_files/no-image.png`
+            }
+
+            const cleanUser = {}
+            for (let key in user) {
+                if (user[key] === null || user[key] === undefined) {
+                    cleanUser[key] = ""
+                } else if (typeof user[key] === "number") {
+                    cleanUser[key] = user[key].toString()
+                } else {
+                    cleanUser[key] = user[key]
+                }
+            }
+
+            cleanUser.image_url = image_url
+
+            return res.json({
+                success: true,
+                data: cleanUser
+            })
+        } catch (err) {
+            console.error(err)
+            return res.status(201).json({ success: false, message: 'Internal server error.' })
+        }
+    },
+
+    updateUser: async (req, res) => {
+        try {
+            const userId = req.user?.id
+            if (!userId) {
+                return res.status(201).json({ success: false, message: 'Unauthorized' })
+            }
+
+            const updateData = {}
+
+            if (req.body.farm_name) updateData.farm_name = xss(req.body.farm_name)
+            if (req.body.contact_person) updateData.first_name = xss(req.body.contact_person)
+            if (req.body.mobile_number) updateData.mobile_number = xss(req.body.mobile_number)
+
+            if (req.body.location_id) {
+                const location = await locationModel.getById(Number(req.body.location_id))
+                if (!location) {
+                    return res.status(201).json({ success: false, message: 'Invalid location.' })
+                }
+                updateData.location = location.location_name
+            }
+
+            if (req.file) {
+                const customer_photo = req.file.filename
+                updateData.customer_photo = customer_photo
+
+                const user = await authModel.findById(userId)
+                if (user?.customer_photo) {
+                    const oldFilePath = path.resolve('C:/Users/weblink/Desktop/Poultry_Farm/poultry_farming/uploaded_files/customer_images', user.customer_photo)
+                    if (fs.existsSync(oldFilePath)) {
+                        fs.unlinkSync(oldFilePath)
+                    }
+                }
+            }
+
+            if (Object.keys(updateData).length === 0) {
+                return res.status(201).json({ success: false, message: 'No fields provided to update' })
+            }
+
+            await authModel.update(userId, updateData)
+
+            return res.status(201).json({ success: true, message: 'Profile updated successfully' })
+        } catch (err) {
+            console.error(err)
+            if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path)
+            return res.status(201).json({ success: false, message: 'Internal server error' })
+        }
+    },
+
+    deleteUser: async (req, res) => {
+        try {
+            const userId = req.user?.id
+            if (!userId) {
+                return res.status(201).json({ success: false, message: 'Unauthorized' })
+            }
+
+            const user = await authModel.findById(userId)
+            if (!user) {
+                return res.status(201).json({ success: false, message: 'User not found' })
+            }
+
+            if (user.customer_photo) {
+                const filePath = path.join(
+                    'C:/Users/weblink/Desktop/Poultry_Farm/poultry_farming/uploaded_files/customer_images',
+                    user.customer_photo
+                )
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath)
+                }
+            }
+
+            await authModel.delete(userId)
+
+            return res.status(201).json({
+                success: true,
+                message: 'User deleted successfully'
+            })
+        } catch (err) {
+            console.error(err)
+            return res.status(201).json({
+                success: false,
+                message: 'Internal server error'
+            })
+        }
+    },
+
+    forgotPassword: async (req, res) => {
+        try {
+            const { email } = req.body
+
+            if (!email) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Email is required'
+                })
+            }
+
+            const safeEmail = xss(email)
+
+            if (!email || !validator.isEmail(email)) {
+                deleteFile(uploadedFilePath)
+                return res.status(201).json({
+                    success: false,
+                    message: "Invalid email format"
+                })
+            }
+
+            const user = await authModel.findByUsername(safeEmail)
+
+            if (!user) {
+                return res.status(201).json({
+                    success: true,
+                    message: 'User not found with the provided email.',
+                    email: safeEmail
+                })
+            }
+
+            if (user.is_blocked === '1' || user.status !== '1') {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Account is inactive or blocked'
+                })
+            }
+
+            const resetToken = crypto.randomBytes(32).toString('hex')
+
+            await authModel.updateResetToken(
+                user.customers_id,
+                resetToken
+            )
+
+            return res.status(201).json({
+                success: true,
+                message: 'Password reset email has been sent to the provided email.',
+                email: user.user_name
+            })
+
+        } catch (err) {
+            console.error('Forgot Password Error:', err)
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            })
+        }
+    },
+
+    resetPasswordByEmail: async (req, res) => {
+        try {
+            const { email, password, confirm_password } = req.body
+
+            if (!email || !password || !confirm_password) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'All fields are required'
+                })
+            }
+
+            if (password !== confirm_password) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Password and confirm password do not match'
+                })
+            }
+
+            const safeEmail = xss(email)
+
+            const user = await authModel.findByUsername(safeEmail)
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                })
+            }
+
+            if (user.status !== '1' || user.is_blocked === '1') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Account is inactive or blocked'
+                })
+            }
+
+            const hashedPassword = await bcrypt.hash(password, 10)
+
+            await authModel.updatePassword(
+                user.customers_id,
+                hashedPassword
+            )
+
+            return res.status(200).json({
+                success: true,
+                message: 'Password reset successfully'
+            })
+
+        } catch (err) {
+            console.error('Reset Password (Email) Error:', err)
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            })
+        }
+    },
+
+    resetPasswordFromProfile: async (req, res) => {
+        try {
+            const userId = req.user?.id
+
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Unauthorized'
+                })
+            }
+
+            const {
+                old_password,
+                new_password,
+                confirm_new_password
+            } = req.body
+
+            if (!old_password || !new_password || !confirm_new_password) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'All fields are required'
+                })
+            }
+
+            if (new_password !== confirm_new_password) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'New password and confirm password do not match'
+                })
+            }
+
+            const user = await authModel.findById(userId)
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                })
+            }
+
+            const isMatch = await bcrypt.compare(
+                old_password,
+                user.password
+            )
+
+            if (!isMatch) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Old password is incorrect'
+                })
+            }
+
+            const hashedPassword = await bcrypt.hash(new_password, 10)
+
+            await authModel.updatePassword(
+                userId,
+                hashedPassword
+            )
+
+            return res.status(200).json({
+                success: true,
+                message: 'Password updated successfully'
+            })
+
+        } catch (err) {
+            console.error('Reset Password (Profile) Error:', err)
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            })
+        }
+    }
+}
+
+module.exports = { authController, registerValidation, loginValidation }
