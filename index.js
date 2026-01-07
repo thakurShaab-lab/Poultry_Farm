@@ -16,12 +16,13 @@ const galleryRoutes = require('./routes/gallery/gallery')
 const faqRoutes = require('./routes/faq/faq')
 const enquiryRoutes = require('./routes/enquiry/enquiry')
 const homeRoutes = require('./routes/home/home')
+const productRoutes = require('./routes/product/product')
 
 require('./config/db')
 const { pool } = require('./config/db')
 
 const app = express()
-const PORT = process.env.PORT || 3500
+const PORT = process.env.PORT || 3000
 
 applySecurity(app)
 
@@ -66,6 +67,8 @@ app.use('/api/gallery', galleryRoutes)
 app.use('/api/faq', faqRoutes)
 app.use('/api/enquiry', enquiryRoutes)
 app.use('/api/home', homeRoutes)
+app.use('/api/product', productRoutes)
+
 
 app.use(errorMiddleware)
 

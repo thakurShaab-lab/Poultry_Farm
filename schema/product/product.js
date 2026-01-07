@@ -1,13 +1,4 @@
-const {
-    mysqlTable,
-    int,
-    varchar,
-    float,
-    text,
-    datetime,
-    date,
-    mysqlEnum,
-} = require('drizzle-orm/mysql-core');
+const { mysqlTable, int, varchar, float, text, datetime, date, mysqlEnum } = require('drizzle-orm/mysql-core')
 
 const wl_products = mysqlTable('wl_products', {
     products_id: int('products_id').primaryKey().autoincrement(),
@@ -32,7 +23,7 @@ const wl_products = mysqlTable('wl_products', {
     })
         .notNull()
         .default(0.0),
-
+        
     product_discount_percent: float('product_discount_percent', {
         precision: 10,
         scale: 2,
@@ -92,6 +83,6 @@ const wl_products = mysqlTable('wl_products', {
 
     accept_type: mysqlEnum('accept_type', ['0', '1', '2', '3'])
         .default('0'),
-});
+})
 
-module.exports = { wl_products };
+module.exports = { wl_products }

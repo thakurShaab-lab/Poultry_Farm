@@ -7,7 +7,17 @@ const { upload } = require('../../utils/upload')
 
 const router = express.Router()
 
-router.post('/register', upload('customer_images').single('customer_photo'), registerValidation, validateRequest, authController.register)
+router.post('/register', (req, res, next) => {
+    upload('customer_images').single('customer_photo')(req, res, (err) => {
+        if (err) {
+            return res.status(400).json({
+                success: false,
+                message: err.message
+            })
+        }
+        next()
+    })
+}, registerValidation, validateRequest, authController.register)
 router.post('/login', loginValidation, validateRequest, authController.login)
 router.get('/profile', authMiddleware, authController.getUser)
 router.post('/logout', authController.logout)
