@@ -93,6 +93,9 @@ const wl_order = mysqlTable("wl_order", {
   product_quantity: int("product_quantity").default(0),
 
   comment: varchar("comment", { length: 255 }).default(null),
+  app_id: varchar('app_id', { length: 128 }),
+  device_id: varchar('device_id', { length: 128 }),
+  app_type: varchar('app_type', { length: 128 }),
 })
 
-module.exports = wl_order
+module.exports = { wl_order }

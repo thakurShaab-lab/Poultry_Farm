@@ -157,6 +157,10 @@ const tbl_admin = mysqlTable('tbl_admin', {
 
     success_rates: varchar('success_rates', { length: 155 })
         .default(null),
+
+    app_id: varchar('app_id', { length: 128 }),
+    device_id: varchar('device_id', { length: 128 }),
+    app_type: varchar('app_type', { length: 128 }),
 })
 
 module.exports = { tbl_admin }

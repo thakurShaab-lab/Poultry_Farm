@@ -23,7 +23,7 @@ const wl_products = mysqlTable('wl_products', {
     })
         .notNull()
         .default(0.0),
-        
+
     product_discount_percent: float('product_discount_percent', {
         precision: 10,
         scale: 2,
@@ -83,6 +83,9 @@ const wl_products = mysqlTable('wl_products', {
 
     accept_type: mysqlEnum('accept_type', ['0', '1', '2', '3'])
         .default('0'),
+    app_id: varchar('app_id', { length: 128 }),
+    device_id: varchar('device_id', { length: 128 }),
+    app_type: varchar('app_type', { length: 128 }),
 })
 
 module.exports = { wl_products }

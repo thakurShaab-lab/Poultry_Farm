@@ -32,6 +32,21 @@ const registerValidation = [
         .notEmpty().withMessage('Mobile number is required')
         .isMobilePhone('any').withMessage('Invalid mobile number'),
 
+    body('app_id')
+        .trim()
+        .notEmpty().withMessage('App ID is required')
+        .isLength({ min: 2, max: 180 }).withMessage('App ID must be a valid string'),
+
+    body('device_id')
+        .trim()
+        .notEmpty().withMessage('Device ID is required')
+        .isLength({ min: 2, max: 180 }).withMessage('Device ID must be a valid string'),
+
+    body('app_type')
+        .trim()
+        .notEmpty().withMessage('App type is required')
+        .isLength({ min: 2, max: 180 }).withMessage('App type must be a valid string'),
+
     body('location_id')
         .notEmpty().withMessage('Location is required')
         .isInt().withMessage('Location ID must be numeric'),
@@ -93,7 +108,7 @@ const authController = {
                 uploadedFilePath = req.file.path
             }
 
-            const { farm_name, contact_person, email, mobile_number, location_id, address, password, confirm_password } = req.body
+            const { farm_name, contact_person, email, mobile_number, location_id, address, password, confirm_password, app_id, device_id, app_type } = req.body
 
             if (!email || !validator.isEmail(email)) {
                 deleteFile(uploadedFilePath)
@@ -162,7 +177,9 @@ const authController = {
                 is_verified: '0',
                 login_type: 'normal',
                 ip_address: req.ip,
-                account_created_date: new Date()
+                account_created_date: new Date(),
+                app_id,
+                app_type, device_id
             }
 
             await authModel.create(data)
@@ -331,9 +348,9 @@ const authController = {
 
                 const user = await authModel.findById(userId)
                 if (user?.customer_photo) {
-                    const oldFilePath = path.resolve('C:/Users/weblink/Desktop/Poultry_Farm/poultry_farming/uploaded_files/customer_images', user.customer_photo)
-                    if (fs.existsSync(oldFilePath)) {
-                        fs.unlinkSync(oldFilePath)
+                    const uploadDir = path.join(__dirname, "../../../poultry_farming/uploaded_files/customer_images", user.customer_photo)
+                    if (fs.existsSync(uploadDir)) {
+                        fs.unlinkSync(uploadDir)
                     }
                 }
             }

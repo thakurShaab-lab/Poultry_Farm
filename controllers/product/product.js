@@ -60,6 +60,8 @@ const productsController = {
             const member_id = req.user?.id
             const { product_id, action } = req.body
 
+            console.log(member_id)
+
             if (!member_id) {
                 return res.status(201).json({
                     success: false,
@@ -74,6 +76,7 @@ const productsController = {
             }
 
             const accept_type = ACTION_MAP[action]
+
             if (!accept_type) {
                 return res.status(201).json({
                     success: false,
@@ -81,13 +84,15 @@ const productsController = {
                 })
             }
 
-            const result = await productModel.updateAcceptType({
+            const result = await productModel.updateStatusAndCreateOrder({
                 product_id,
-                accept_type,
-                member_id
+                member_id,
+                accept_type
             })
 
-            if (result.affectedRows === 0) {
+            console.log(member_id)
+
+            if (!result) {
                 return res.status(201).json({
                     success: false,
                     message: 'Product not found or access denied'
@@ -96,7 +101,10 @@ const productsController = {
 
             return res.status(201).json({
                 success: true,
-                message: `Product ${action}ed successfully`
+                message:
+                    accept_type === '3'
+                        ? 'Product completed and order created successfully'
+                        : `Product ${action}ed successfully`
             })
 
         } catch (err) {
@@ -133,6 +141,104 @@ const productsController = {
 
         } catch (err) {
             console.error(err)
+            return res.status(500).json({
+                success: false,
+                message: 'Server error'
+            })
+        }
+    },
+
+    updateProduct: async (req, res) => {
+        try {
+            const member_id = req.user?.id
+            const { order_id, product_quantity, comment } = req.body
+
+            if (!member_id) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Unauthorized'
+                })
+            }
+
+            if (!order_id || !product_quantity || product_quantity <= 0) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Invalid order id or quantity'
+                })
+            }
+
+            console.log('Req.Body:', req.body)
+            console.log('Member ID:', member_id)
+
+            const result = await productModel.updateProduct({
+                order_id,
+                member_id,
+                product_quantity,
+                comment
+            })
+
+            console.log('Result:', result)
+
+            if (!result) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Order not found or access denied'
+                })
+            }
+
+            return res.status(201).json(convertNulls({
+                success: true,
+                message: 'Order updated successfully'
+            }))
+
+        } catch (err) {
+            console.error(err)
+            return res.status(500).json({
+                success: false,
+                message: 'Server error'
+            })
+        }
+    },
+
+    generateInvoice: async (req, res) => {
+        try {
+            const member_id = req.user?.id
+            const { order_id } = req.body
+
+            if (!member_id) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Unauthorized'
+                })
+            }
+
+            if (!order_id) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Order ID is required'
+                })
+            }
+
+            const invoice = await productModel.generateInvoice({
+                order_id,
+                member_id
+            })
+
+            if (!invoice) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Order not found or access denied'
+                })
+            }
+
+            return res.status(200).json(convertNulls({
+                success: true,
+                message: 'Invoice generated successfully',
+                data: invoice
+            }))
+
+        } catch (err) {
+            console.error('Invoice Error:', err)
             return res.status(500).json({
                 success: false,
                 message: 'Server error'

@@ -23,8 +23,7 @@ const upload = (moduleName) => {
     return multer({
         storage: storage(moduleName),
         fileFilter: (req, file, cb) => {
-            // const fileTypes = /jpeg|jpg|png|gif|mp4|mov|avi|rtf|doc|docx|pdf/
-            const fileTypes = /rtf|doc|docx|pdf/
+            const fileTypes = /jpeg|jpg|png|gif|mp4|mov|avi|rtf|doc|docx|pdf/
             const mimeType = fileTypes.test(file.mimetype)
             const extname = fileTypes.test(
                 path.extname(file.originalname).toLowerCase()

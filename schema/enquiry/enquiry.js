@@ -99,6 +99,10 @@ const wl_enquiry = mysqlTable('wl_enquiry', {
 
     quantity: int('quantity')
         .default(null),
+
+    app_id: varchar('app_id', { length: 128 }),
+    device_id: varchar('device_id', { length: 128 }),
+    app_type: varchar('app_type', { length: 128 }),
 })
 
 

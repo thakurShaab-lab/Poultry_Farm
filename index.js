@@ -22,7 +22,7 @@ require('./config/db')
 const { pool } = require('./config/db')
 
 const app = express()
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 3002
 
 applySecurity(app)
 
@@ -72,6 +72,6 @@ app.use('/api/product', productRoutes)
 
 app.use(errorMiddleware)
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server running at http://0.0.0.0:${PORT}`)
+app.listen(PORT, '127.0.0.1', () => {
+    console.log(`🚀 Server running at http://127.0.0.1:${PORT}`)
 })

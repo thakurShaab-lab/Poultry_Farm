@@ -117,6 +117,10 @@ const wl_customers = mysqlTable('wl_customers', {
     .default(0),
 
   register_type_val: varchar('register_type_val', { length: 55 }),
+
+  app_id: varchar('app_id', { length: 128 }),
+  device_id: varchar('device_id', { length: 128 }),
+  app_type: varchar('app_type', { length: 128 }),
 })
 
 module.exports = { wl_customers }
