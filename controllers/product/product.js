@@ -1,5 +1,9 @@
+const { db } = require('../../config/db')
+const { eq, and, sql } = require('drizzle-orm')
 const productModel = require('../../model/products/product')
 const authModel = require('../../model/auth/auth')
+const { wl_products } = require('../../schema/product/product')
+const { wl_order } = require('../../schema/order/order')
 const { convertNulls } = require('../../utils/convertNull')
 
 const ACCEPT_TYPE_LABEL = {
@@ -212,65 +216,137 @@ const productsController = {
 
     updateProduct: async (req, res) => {
         try {
-            const member_id = req.user?.id
-            const appId = req.user?.appId
-            const { order_id, product_quantity, comment } = req.body
+            const member_id = req.user?.id;
+            const appId = req.user?.appId;
+            const { order_id, product_quantity, comment } = req.body;
 
-            if (!member_id || !appId) {
+            // Authorization check
+            if (!member_id && !appId) {
                 return res.status(201).json({
                     success: false,
                     message: 'Unauthorized'
-                })
+                });
             }
 
-            let member = null
+            // Fetch member
+            let member = null;
             if (member_id) {
-                member = await authModel.findById(member_id)
+                member = await authModel.findById(member_id);
             }
-
             if (!member && appId) {
-                member = await authModel.findByAppId(appId)
+                member = await authModel.findByAppId(appId);
             }
-
             if (!member) {
                 return res.status(201).json({
                     success: false,
                     message: 'User not found.'
-                })
+                });
             }
 
-            if (!order_id || !product_quantity || product_quantity <= 0) {
+            if (!order_id) {
                 return res.status(201).json({
                     success: false,
-                    message: 'Invalid order id or quantity'
-                })
+                    message: 'Order id is required'
+                });
             }
 
-            const result = await productModel.updateProduct({
-                order_id,
-                member_id,
-                product_quantity,
-                comment
-            })
-
-            if (!result) {
+            if (product_quantity !== undefined && (Number(product_quantity) <= 0 || isNaN(product_quantity))) {
                 return res.status(201).json({
                     success: false,
-                    message: 'Order not found or access denied'
-                })
+                    message: 'Invalid product quantity'
+                });
             }
+
+            // Fetch order first
+            const order = await db
+                .select()
+                .from(wl_order)
+                .where(eq(wl_order.order_id, order_id))
+                .limit(1);
+
+            if (!order || order.length === 0) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Order not found'
+                });
+            }
+
+            const currentOrder = order[0];
+
+            // Fetch product linked to this order
+            const product = await db
+                .select()
+                .from(wl_products)
+                .where(eq(wl_products.products_id, currentOrder.products_id))
+                .limit(1);
+
+            if (!product || product.length === 0) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Product not found'
+                });
+            }
+
+            const currentProduct = product[0];
+
+            // Prepare update objects
+            const orderUpdate = {};
+            const productUpdate = {};
+
+            if (product_quantity !== undefined) {
+                const price = Number(currentProduct.product_price || 0);
+                const total_amount = Number(product_quantity) * price;
+
+                orderUpdate.product_quantity = Number(product_quantity);
+                orderUpdate.total_amount = total_amount;
+
+                productUpdate.product_quantity = Number(product_quantity);
+            }
+
+            if (comment !== undefined) {
+                orderUpdate.comment = comment; // comment only exists in order
+            }
+
+            if (Object.keys(orderUpdate).length === 0 && Object.keys(productUpdate).length === 0) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Nothing to update'
+                });
+            }
+
+            // Transaction: update both tables atomically
+            await db.transaction(async (tx) => {
+                // Update order
+                const orderResult = await tx
+                    .update(wl_order)
+                    .set(orderUpdate)
+                    .where(eq(wl_order.order_id, order_id))
+                    .where(eq(wl_order.customers_id, member_id));
+
+                if (!orderResult) throw new Error('Failed to update order');
+
+                // Update product
+                if (Object.keys(productUpdate).length > 0) {
+                    const productResult = await tx
+                        .update(wl_products)
+                        .set(productUpdate)
+                        .where(eq(wl_products.products_id, currentOrder.products_id));
+
+                    if (!productResult) throw new Error('Failed to update product');
+                }
+            });
 
             return res.status(201).json(convertNulls({
                 success: true,
-                message: 'Order updated successfully'
-            }))
+                message: 'Order and product updated successfully'
+            }));
 
         } catch (err) {
-            console.error(err)
+            console.error(err);
             return res.status(201).json({
                 success: false,
                 message: 'Server error'
-            })
+            });
         }
     },
 

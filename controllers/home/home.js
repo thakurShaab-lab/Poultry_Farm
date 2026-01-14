@@ -60,7 +60,7 @@ const homeController = {
 
             return res.status(201).json(convertNulls({
                 success: true,
-                data: {
+                home_data: {
                     headers: headerData,
                     about_us: aboutUs,
                     stats: {
