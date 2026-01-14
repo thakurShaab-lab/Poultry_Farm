@@ -9,6 +9,11 @@ const jwt = require('jsonwebtoken')
 const authModel = require('../../model/auth/auth')
 const locationModel = require('../../model/location/location')
 
+body('app_id').notEmpty()
+body('device_id').notEmpty()
+body('app_type').notEmpty()
+
+
 const registerValidation = [
 
     body('farm_name')
@@ -163,9 +168,17 @@ const authController = {
 
             const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS)
 
+            console.log({
+                app_id,
+                app_type,
+                device_id
+            })
+
+
             const data = {
                 user_name: email,
                 password: hashedPassword,
+                old_password: hashedPassword,
                 farm_name,
                 first_name: contact_person,
                 mobile_number,
@@ -178,8 +191,9 @@ const authController = {
                 login_type: 'normal',
                 ip_address: req.ip,
                 account_created_date: new Date(),
-                app_id,
-                app_type, device_id
+                app_id: app_id,
+                app_type: app_type,
+                device_id: device_id
             }
 
             await authModel.create(data)
@@ -249,14 +263,14 @@ const authController = {
                 { expiresIn: ACCESS_EXPIRES_IN }
             )
 
-            return res.status(200).json({
+            return res.status(201).json({
                 success: true,
                 message: 'Login successful',
                 accessToken: accessToken
             })
 
         } catch (err) {
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Login failed'
             })
@@ -281,21 +295,36 @@ const authController = {
     getUser: async (req, res) => {
         try {
             const userId = req.user?.id
-            if (!userId) {
-                return res.status(201).json({ success: false, message: 'Unauthorized' })
+            const appId = req.user?.appId
+
+            if (!userId || !appId) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Unauthorized'
+                })
             }
 
-            const user = await authModel.findById(userId)
+            let user = null
+            if (userId) {
+                user = await authModel.findById(userId)
+            }
+
+            if (!user && appId) {
+                user = await authModel.findByAppId(appId)
+            }
 
             if (!user) {
-                return res.status(201).json({ success: false, message: 'User not found' })
+                return res.status(201).json({
+                    success: false,
+                    message: 'User not found.'
+                })
             }
 
             let image_url = ''
             if (user.customer_photo) {
                 const host = req.get("host").split(":")[0]
                 const baseURL = `${req.protocol}://${host}`
-                image_url = user.customer_photo ? `${baseURL}/poultry_farming/uploaded_files/customer_images/${user.customer_photo}` : `${baseURL}/poultry_farming/uploaded_files/no-image.png`
+                image_url = `${baseURL}/poultry_farming/uploaded_files/customer_images/${user.customer_photo}`
             }
 
             const cleanUser = {}
@@ -311,21 +340,46 @@ const authController = {
 
             cleanUser.image_url = image_url
 
-            return res.json({
+            return res.status(201).json({
                 success: true,
                 data: cleanUser
             })
+
         } catch (err) {
             console.error(err)
-            return res.status(201).json({ success: false, message: 'Internal server error.' })
+            return res.status(201).json({
+                success: false,
+                message: 'Internal server error.'
+            })
         }
     },
 
     updateUser: async (req, res) => {
         try {
             const userId = req.user?.id
-            if (!userId) {
-                return res.status(201).json({ success: false, message: 'Unauthorized' })
+            const appId = req.user?.appId
+
+            if (!userId || !appId) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Unauthorized'
+                })
+            }
+
+            let user = null
+            if (userId) {
+                user = await authModel.findById(userId)
+            }
+
+            if (!user && appId) {
+                user = await authModel.findByAppId(appId)
+            }
+
+            if (!user) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'User not found.'
+                })
             }
 
             const updateData = {}
@@ -339,6 +393,7 @@ const authController = {
                 if (!location) {
                     return res.status(201).json({ success: false, message: 'Invalid location.' })
                 }
+                updateData.location_id = location.location_id
                 updateData.location = location.location_name
             }
 
@@ -372,13 +427,29 @@ const authController = {
     deleteUser: async (req, res) => {
         try {
             const userId = req.user?.id
-            if (!userId) {
-                return res.status(201).json({ success: false, message: 'Unauthorized' })
+            const appId = req.user?.appId
+
+            if (!userId || !appId) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Unauthorized'
+                })
             }
 
-            const user = await authModel.findById(userId)
+            let user = null
+            if (userId) {
+                user = await authModel.findById(userId)
+            }
+
+            if (!user && appId) {
+                user = await authModel.findByAppId(appId)
+            }
+
             if (!user) {
-                return res.status(201).json({ success: false, message: 'User not found' })
+                return res.status(201).json({
+                    success: false,
+                    message: 'User not found.'
+                })
             }
 
             if (user.customer_photo) {
@@ -411,7 +482,7 @@ const authController = {
             const { email } = req.body
 
             if (!email) {
-                return res.status(400).json({
+                return res.status(201).json({
                     success: false,
                     message: 'Email is required'
                 })
@@ -459,7 +530,7 @@ const authController = {
 
         } catch (err) {
             console.error('Forgot Password Error:', err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Internal server error'
             })
@@ -471,14 +542,14 @@ const authController = {
             const { email, password, confirm_password } = req.body
 
             if (!email || !password || !confirm_password) {
-                return res.status(400).json({
+                return res.status(201).json({
                     success: false,
                     message: 'All fields are required'
                 })
             }
 
             if (password !== confirm_password) {
-                return res.status(400).json({
+                return res.status(201).json({
                     success: false,
                     message: 'Password and confirm password do not match'
                 })
@@ -489,14 +560,14 @@ const authController = {
             const user = await authModel.findByUsername(safeEmail)
 
             if (!user) {
-                return res.status(404).json({
+                return res.status(201).json({
                     success: false,
                     message: 'User not found'
                 })
             }
 
             if (user.status !== '1' || user.is_blocked === '1') {
-                return res.status(403).json({
+                return res.status(201).json({
                     success: false,
                     message: 'Account is inactive or blocked'
                 })
@@ -509,14 +580,14 @@ const authController = {
                 hashedPassword
             )
 
-            return res.status(200).json({
+            return res.status(201).json({
                 success: true,
                 message: 'Password reset successfully'
             })
 
         } catch (err) {
             console.error('Reset Password (Email) Error:', err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Internal server error'
             })
@@ -526,11 +597,28 @@ const authController = {
     resetPasswordFromProfile: async (req, res) => {
         try {
             const userId = req.user?.id
+            const appId = req.user?.appId
 
-            if (!userId) {
-                return res.status(401).json({
+            if (!userId || !appId) {
+                return res.status(201).json({
                     success: false,
                     message: 'Unauthorized'
+                })
+            }
+
+            let user = null
+            if (userId) {
+                user = await authModel.findById(userId)
+            }
+
+            if (!user && appId) {
+                user = await authModel.findByAppId(appId)
+            }
+
+            if (!user) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'User not found.'
                 })
             }
 
@@ -541,23 +629,21 @@ const authController = {
             } = req.body
 
             if (!old_password || !new_password || !confirm_new_password) {
-                return res.status(400).json({
+                return res.status(201).json({
                     success: false,
                     message: 'All fields are required'
                 })
             }
 
             if (new_password !== confirm_new_password) {
-                return res.status(400).json({
+                return res.status(201).json({
                     success: false,
                     message: 'New password and confirm password do not match'
                 })
             }
 
-            const user = await authModel.findById(userId)
-
             if (!user) {
-                return res.status(404).json({
+                return res.status(201).json({
                     success: false,
                     message: 'User not found'
                 })
@@ -569,7 +655,7 @@ const authController = {
             )
 
             if (!isMatch) {
-                return res.status(400).json({
+                return res.status(201).json({
                     success: false,
                     message: 'Old password is incorrect'
                 })
@@ -582,14 +668,14 @@ const authController = {
                 hashedPassword
             )
 
-            return res.status(200).json({
+            return res.status(201).json({
                 success: true,
                 message: 'Password updated successfully'
             })
 
         } catch (err) {
             console.error('Reset Password (Profile) Error:', err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Internal server error'
             })

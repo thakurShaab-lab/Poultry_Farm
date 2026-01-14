@@ -17,7 +17,7 @@ const locationController = {
             }))
         } catch (err) {
             console.error('GetLocations Error:', err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Internal server error'
             })
@@ -50,7 +50,7 @@ const locationController = {
             }))
         } catch (err) {
             console.error('GetLocationById Error:', err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Internal server error'
             })

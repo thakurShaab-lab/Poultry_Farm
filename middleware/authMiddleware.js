@@ -9,6 +9,7 @@ const JWT_SECRET = process.env.ACCESS_SECRET
 const authMiddleware = async (req, res, next) => {
     try {
         let token
+        const appId = req.headers['x-app-id']
 
         if (req.headers.authorization?.startsWith('Bearer')) {
             token = req.headers.authorization.split(' ')[1]
@@ -35,6 +36,7 @@ const authMiddleware = async (req, res, next) => {
 
         req.user = {
             id: user.customers_id,
+            appId: appId,
             user_name: user.user_name,
             mobile_number: user.mobile_number,
             // customer_name: user.first_name + " " + user.last_name,
@@ -65,67 +67,5 @@ const authMiddleware = async (req, res, next) => {
         })
     }
 }
-
-// const adminAuth = async (req, res, next) => {
-//     try {
-//         let token
-
-//         if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-//             token = req.headers.authorization.split(' ')[1]
-//         }
-
-//         else if (req.cookies && req.cookies.token) {
-//             token = req.cookies.token
-//         }
-
-//         if (!token) {
-//             return res.status(201).json({
-//                 success: false,
-//                 message: 'Access denied. Please login.',
-//             })
-//         }
-
-//         let decoded
-//         try {
-//             decoded = jwt.verify(token, JWT_SECRET)
-//         } catch (err) {
-//             return res.status(201).json({
-//                 success: false,
-//                 message: 'Invalid or expired token. Please login again',
-//             })
-//         }
-
-//         const [admin] = await db
-//             .select()
-//             .from(tbl_admin)
-//             .where(eq(tbl_admin.admin_id, decoded.id))
-
-//         if (!admin) {
-//             return res.status(201).json({ success: false, message: 'Admin not found.' })
-//         }
-
-//         if (admin.status !== '1') {
-//             return res.status(201).json({
-//                 success: false,
-//                 message: 'Admin account is inactive or blocked.',
-//             })
-//         }
-
-//         req.admin = {
-//             id: admin.admin_id,
-//             username: admin.admin_username,
-//             email: admin.admin_email,
-//             type: admin.admin_type,
-//         }
-
-//         next()
-//     } catch (error) {
-//         console.error('❌ Admin Auth Error:', error)
-//         return res.status(500).json({
-//             success: false,
-//             message: 'Server error while authenticating admin.',
-//         })
-//     }
-// }
 
 module.exports = { authMiddleware }

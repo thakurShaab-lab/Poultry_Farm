@@ -10,7 +10,7 @@ const router = express.Router()
 router.post('/register', (req, res, next) => {
     upload('customer_images').single('customer_photo')(req, res, (err) => {
         if (err) {
-            return res.status(400).json({
+            return res.status(201).json({
                 success: false,
                 message: err.message
             })

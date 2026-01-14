@@ -12,6 +12,9 @@ const contactUsController = {
                 email,
                 phone_number,
                 comment,
+                app_id, 
+                device_id, 
+                app_type
             } = req.body
 
             if (!first_name || !last_name || !email || !phone_number || !comment) {
@@ -40,6 +43,9 @@ const contactUsController = {
                 receive_date: new Date(),
                 customers_id: 0,
                 product_id: 0,
+                app_id, 
+                device_id, 
+                app_type
             }
 
             await contactUsModel.create(insertData)
@@ -52,7 +58,7 @@ const contactUsController = {
 
         } catch (error) {
             console.error(error)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Server error'
             })

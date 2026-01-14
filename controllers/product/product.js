@@ -1,4 +1,5 @@
 const productModel = require('../../model/products/product')
+const authModel = require('../../model/auth/auth')
 const { convertNulls } = require('../../utils/convertNull')
 
 const ACCEPT_TYPE_LABEL = {
@@ -16,9 +17,29 @@ const productsController = {
             const page = Number(req.query.page || 1)
             const limit = Number(req.query.limit || 10)
             const member_id = req.user?.id
+            const appId = req.user?.appId
 
-            if (!member_id) {
-                return res.status(201).json({ success: false, message: 'Please login first.' })
+            if (!member_id || !appId) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Unauthorized'
+                })
+            }
+
+            let member = null
+            if (member_id) {
+                member = await authModel.findById(member_id)
+            }
+
+            if (!member && appId) {
+                member = await authModel.findByAppId(appId)
+            }
+
+            if (!member) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'User not found.'
+                })
             }
 
             const result = await productModel.listByStatus({
@@ -51,21 +72,38 @@ const productsController = {
 
         } catch (err) {
             console.error(err)
-            return res.status(500).json({ success: false, message: 'Internal server error.' })
+            return res.status(201).json({ success: false, message: 'Internal server error.' })
         }
     },
 
     updateStatus: async (req, res) => {
         try {
             const member_id = req.user?.id
+            const appId = req.user?.appId
             const { product_id, action } = req.body
 
             console.log(member_id)
 
-            if (!member_id) {
+            if (!member_id || !appId) {
                 return res.status(201).json({
                     success: false,
                     message: 'Unauthorized'
+                })
+            }
+
+            let member = null
+            if (member_id) {
+                member = await authModel.findById(member_id)
+            }
+
+            if (!member && appId) {
+                member = await authModel.findByAppId(appId)
+            }
+
+            if (!member) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'User not found.'
                 })
             }
 
@@ -90,8 +128,6 @@ const productsController = {
                 accept_type
             })
 
-            console.log(member_id)
-
             if (!result) {
                 return res.status(201).json({
                     success: false,
@@ -109,7 +145,7 @@ const productsController = {
 
         } catch (err) {
             console.error(err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Server error'
             })
@@ -119,11 +155,28 @@ const productsController = {
     getStatusCounts: async (req, res) => {
         try {
             const member_id = req.user?.id
+            const appId = req.user?.appId
 
-            if (!member_id) {
-                return res.status(401).json({
+            if (!member_id || !appId) {
+                return res.status(201).json({
                     success: false,
                     message: 'Unauthorized'
+                })
+            }
+
+            let member = null
+            if (member_id) {
+                member = await authModel.findById(member_id)
+            }
+
+            if (!member && appId) {
+                member = await authModel.findByAppId(appId)
+            }
+
+            if (!member) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'User not found.'
                 })
             }
 
@@ -141,7 +194,7 @@ const productsController = {
 
         } catch (err) {
             console.error(err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Server error'
             })
@@ -151,12 +204,29 @@ const productsController = {
     updateProduct: async (req, res) => {
         try {
             const member_id = req.user?.id
+            const appId = req.user?.appId
             const { order_id, product_quantity, comment } = req.body
 
-            if (!member_id) {
+            if (!member_id || !appId) {
                 return res.status(201).json({
                     success: false,
                     message: 'Unauthorized'
+                })
+            }
+
+            let member = null
+            if (member_id) {
+                member = await authModel.findById(member_id)
+            }
+
+            if (!member && appId) {
+                member = await authModel.findByAppId(appId)
+            }
+
+            if (!member) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'User not found.'
                 })
             }
 
@@ -167,17 +237,12 @@ const productsController = {
                 })
             }
 
-            console.log('Req.Body:', req.body)
-            console.log('Member ID:', member_id)
-
             const result = await productModel.updateProduct({
                 order_id,
                 member_id,
                 product_quantity,
                 comment
             })
-
-            console.log('Result:', result)
 
             if (!result) {
                 return res.status(201).json({
@@ -193,7 +258,7 @@ const productsController = {
 
         } catch (err) {
             console.error(err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Server error'
             })
@@ -203,17 +268,34 @@ const productsController = {
     generateInvoice: async (req, res) => {
         try {
             const member_id = req.user?.id
+            const appId = req.user?.appId
             const { order_id } = req.body
 
-            if (!member_id) {
-                return res.status(401).json({
+            if (!member_id || !appId) {
+                return res.status(201).json({
                     success: false,
                     message: 'Unauthorized'
                 })
             }
 
+            let member = null
+            if (member_id) {
+                member = await authModel.findById(member_id)
+            }
+
+            if (!member && appId) {
+                member = await authModel.findByAppId(appId)
+            }
+
+            if (!member) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'User not found.'
+                })
+            }
+
             if (!order_id) {
-                return res.status(400).json({
+                return res.status(201).json({
                     success: false,
                     message: 'Order ID is required'
                 })
@@ -225,13 +307,13 @@ const productsController = {
             })
 
             if (!invoice) {
-                return res.status(404).json({
+                return res.status(201).json({
                     success: false,
                     message: 'Order not found or access denied'
                 })
             }
 
-            return res.status(200).json(convertNulls({
+            return res.status(201).json(convertNulls({
                 success: true,
                 message: 'Invoice generated successfully',
                 data: invoice
@@ -239,7 +321,7 @@ const productsController = {
 
         } catch (err) {
             console.error('Invoice Error:', err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Server error'
             })

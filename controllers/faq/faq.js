@@ -18,7 +18,7 @@ const faqController = {
 
         } catch (err) {
             console.error('FAQ getAll error:', err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Server error'
             })
@@ -44,7 +44,7 @@ const faqController = {
 
         } catch (err) {
             console.error('FAQ getSingle error:', err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Server error'
             })

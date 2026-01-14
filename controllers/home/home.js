@@ -76,7 +76,7 @@ const homeController = {
 
         } catch (err) {
             console.error(err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Server error'
             })

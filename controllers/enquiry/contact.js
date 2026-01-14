@@ -8,7 +8,7 @@ const contactController = {
             const data = await contactModel.getContactData()
 
             if (!data) {
-                return res.status(404).json({
+                return res.status(201).json({
                     success: false,
                     message: 'Contact details not found'
                 })
@@ -47,7 +47,7 @@ const contactController = {
 
         } catch (error) {
             console.error('Contact API Error:', error)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Server error'
             })

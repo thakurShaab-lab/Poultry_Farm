@@ -1,6 +1,6 @@
 const { db } = require('../../config/db')
+const { eq, or } = require('drizzle-orm')
 const { wl_customers } = require('../../schema/auth/index')
-const { eq } = require('drizzle-orm')
 
 const authModel = {
 
@@ -27,9 +27,33 @@ const authModel = {
         const result = await db
             .select()
             .from(wl_customers)
-            .where(eq(wl_customers.customers_id, customers_id))
+            .where((eq(wl_customers.customers_id, customers_id)))
             .limit(1)
 
+        return result[0] || null
+    },
+
+    findByAppId: async (appId) => {
+        const result = await db
+            .select()
+            .from(wl_customers)
+            .where(eq(wl_customers.app_id, appId))
+            .limit(1)
+
+        return result[0] || null
+    },
+
+    findByIdWithApp: async (userId, appId = null) => {
+        let query = db
+            .select()
+            .from(wl_customers)
+            .where(eq(wl_customers.customers_id, userId))
+
+        if (appId) {
+            query = query.where(eq(wl_customers.app_id, appId))
+        }
+
+        const result = await query.limit(1)
         return result[0] || null
     },
 
@@ -67,7 +91,7 @@ const authModel = {
     updatePassword: async (userId, hashedPassword) => {
         return await db
             .update(wl_customers)
-            .set({ password: hashedPassword })
+            .set({ password: hashedPassword, old_password: hashedPassword })
             .where(eq(wl_customers.customers_id, userId))
     }
 }

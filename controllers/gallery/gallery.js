@@ -33,7 +33,7 @@ const galleryController = {
 
         } catch (err) {
             console.error(err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Server error'
             })
@@ -46,7 +46,7 @@ const galleryController = {
 
             const gallery = await galleryModel.getById(id)
             if (!gallery) {
-                return res.status(404).json({
+                return res.status(201).json({
                     success: false,
                     message: 'Gallery not found'
                 })
@@ -66,7 +66,7 @@ const galleryController = {
 
         } catch (err) {
             console.error(err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: 'Server error'
             })

@@ -21,7 +21,7 @@ const pageController = {
             }))
         } catch (err) {
             console.error(err)
-            return res.status(500).json({
+            return res.status(201).json({
                 success: false,
                 message: "Server error"
             })
@@ -32,18 +32,18 @@ const pageController = {
         try {
             const pageId = Number(req.params.id)
             if (isNaN(pageId)) {
-                return res.status(400).json({ success: false, message: "Invalid page ID" })
+                return res.status(201).json({ success: false, message: "Invalid page ID" })
             }
 
             const page = await pageModel.getById(pageId)
             if (!page) {
-                return res.status(404).json({ success: false, message: "Page not found" })
+                return res.status(201).json({ success: false, message: "Page not found" })
             }
 
-            return res.status(200).json(convertNulls({ success: true, data: page }))
+            return res.status(201).json(convertNulls({ success: true, data: page }))
         } catch (err) {
             console.error(err)
-            return res.status(500).json({ success: false, message: "Server error" })
+            return res.status(201).json({ success: false, message: "Server error" })
         }
     },
 
