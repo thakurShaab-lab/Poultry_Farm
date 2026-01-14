@@ -49,17 +49,26 @@ const productsController = {
                 limit
             })
 
-            const data = result.data.map(item => ({
-                product_id: item.products_id.toString(),
-                product_name: item.product_name,
-                quantity: item.product_quantity.toString(),
-                age: item.item_age,
-                cost_per_item: `₹${item.product_price}/-`,
-                start_date: item.start_date,
-                end_date: item.end_date,
-                total_days: `${item.total_days} Days`,
-                status: ACCEPT_TYPE_LABEL[accept_type]
-            }))
+            const data = result.data.map(item => {
+                const response = {
+                    product_id: item.products_id.toString(),
+                    product_name: item.product_name,
+                    quantity: item.product_quantity.toString(),
+                    age: item.item_age,
+                    cost_per_item: `₹${item.product_price}/-`,
+                    start_date: item.start_date,
+                    end_date: item.end_date,
+                    total_days: `${item.total_days} Days`,
+                    status: ACCEPT_TYPE_LABEL[accept_type]
+                }
+
+                if (String(accept_type) === '3' && item.order_id) {
+                    response.order_id = item.order_id.toString()
+                }
+
+                return response
+            })
+
 
             return res.status(201).json(convertNulls({
                 success: true,

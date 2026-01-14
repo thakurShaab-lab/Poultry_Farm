@@ -9,13 +9,13 @@ const productModel = {
 
     listByStatus: async ({ accept_type, member_id, page, limit }) => {
         const offset = (page - 1) * limit
-
+    
         const conditions = [
             eq(wl_products.accept_type, String(accept_type)),
             eq(wl_products.member_id, member_id),
             eq(wl_products.status, '1')
         ]
-
+    
         const data = await db
             .select({
                 products_id: wl_products.products_id,
@@ -25,18 +25,26 @@ const productModel = {
                 product_price: wl_products.product_price,
                 start_date: wl_products.start_date,
                 end_date: wl_products.end_date,
-                total_days: sql`DATEDIFF(${wl_products.end_date}, ${wl_products.start_date})`
+                total_days: sql`DATEDIFF(${wl_products.end_date}, ${wl_products.start_date})`,
+                order_id: wl_order.order_id
             })
             .from(wl_products)
+            .leftJoin(
+                wl_order,
+                and(
+                    eq(wl_order.products_id, sql`CAST(${wl_products.products_id} AS CHAR)`),
+                    eq(wl_order.customers_id, member_id)
+                )
+            )
             .where(and(...conditions))
             .limit(limit)
             .offset(offset)
-
+    
         const total = await db
             .select({ count: sql`COUNT(*)` })
             .from(wl_products)
             .where(and(...conditions))
-
+    
         return {
             data,
             total: total[0].count
