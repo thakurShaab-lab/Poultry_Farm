@@ -251,7 +251,10 @@ const authController = {
             }
 
             const ACCESS_SECRET = process.env.ACCESS_SECRET
-            const ACCESS_EXPIRES_IN = process.env.ACCESS_EXPIRES_IN || '7d'
+            const ACCESS_EXPIRES_IN = process.env.ACCESS_EXPIRES_IN || '2d'
+
+            const REFRESH_SECRET = process.env.REFRESH_SECRET
+            const REFRESH_EXPIRES_IN = process.env.REFRESH_EXPIRES_IN || '10d'
 
             const accessToken = jwt.sign(
                 {
@@ -263,10 +266,22 @@ const authController = {
                 { expiresIn: ACCESS_EXPIRES_IN }
             )
 
+            const refreshToken = jwt.sign(
+                {
+                    id: user.customers_id,
+                    appId: user.app_id,
+                    deviceId: user.device_id,
+                    type: 'refresh'
+                },
+                REFRESH_SECRET,
+                { expiresIn: REFRESH_EXPIRES_IN || '10d' }
+            )
+
             return res.status(201).json({
                 success: true,
                 message: 'Login successful',
-                accessToken: accessToken
+                accessToken: accessToken,
+                refreshToken: refreshToken
             })
 
         } catch (err) {
@@ -288,6 +303,106 @@ const authController = {
             return res.status(201).json({
                 success: false,
                 message: 'Logout failed'
+            })
+        }
+    },
+
+    refreshToken: async (req, res) => {
+        try {
+            const refreshToken = req.headers['x-refresh-token']
+
+            if (!refreshToken) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Refresh token required'
+                })
+            }
+
+            let decoded
+            try {
+                decoded = jwt.verify(
+                    refreshToken,
+                    process.env.REFRESH_SECRET
+                )
+            } catch (err) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Invalid or expired refresh token'
+                })
+            }
+
+            if (decoded.type !== 'refresh') {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Invalid token type'
+                })
+            }
+
+            const userId = decoded.id
+            const appId = decoded.appId
+
+            let user = null
+
+            if (userId) {
+                user = await authModel.findById(userId)
+            }
+
+            if (!user && appId) {
+                user = await authModel.findByAppId(appId)
+            }
+
+            if (!user) {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Unauthorized'
+                })
+            }
+
+            if (user.is_blocked === '1') {
+                return res.status(201).json({
+                    success: false,
+                    message: 'User blocked'
+                })
+            }
+
+            const ACCESS_SECRET = process.env.ACCESS_SECRET
+            const ACCESS_EXPIRES_IN = process.env.ACCESS_EXPIRES_IN || '2d'
+
+            const REFRESH_SECRET = process.env.REFRESH_SECRET
+            const REFRESH_EXPIRES_IN = process.env.REFRESH_EXPIRES_IN || '10d'
+
+            const newAccessToken = jwt.sign(
+                {
+                    id: user.customers_id,
+                    appId: user.app_id,
+                    type: 'access'
+                },
+                ACCESS_SECRET,
+                { expiresIn: ACCESS_EXPIRES_IN }
+            )
+
+            const newRefreshToken = jwt.sign(
+                {
+                    id: user.customers_id,
+                    appId: user.app_id,
+                    deviceId: user.device_id,
+                    type: 'refresh'
+                },
+                REFRESH_SECRET,
+                { expiresIn: REFRESH_EXPIRES_IN || '10d' }
+            )
+
+            return res.status(201).json({
+                success: true,
+                access_token: newAccessToken,
+                refresh_token: newRefreshToken
+            })
+
+        } catch (err) {
+            console.error(err)
+            return res.status(201).json({
+                success: false,
+                message: 'Internal server error'
             })
         }
     },

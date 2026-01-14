@@ -21,6 +21,7 @@ router.post('/register', (req, res, next) => {
 router.post('/login', loginValidation, validateRequest, authController.login)
 router.get('/profile', authMiddleware, authController.getUser)
 router.post('/logout', authController.logout)
+router.post('/refresh-token', authController.refreshToken)
 router.put("/update", authMiddleware, upload('customer_images').single('customer_photo'), authController.updateUser)
 router.put("/delete", authMiddleware, authController.deleteUser)
 router.put('/forgot-password', authController.forgotPassword)
