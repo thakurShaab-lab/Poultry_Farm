@@ -17,8 +17,8 @@ const galleryController = {
 
             const data = result.data.map(item => {
                 item.gallery_image = item.gallery_image
-                    ? `${BASE_URL}/plant/uploaded_files/gallery/${item.gallery_image}`
-                    : `${BASE_URL}/plant/uploaded_files/no-image.png`
+                    ? `${BASE_URL}/poultry_farming/uploaded_files/gallery/${item.gallery_image}`
+                    : `${BASE_URL}/poultry_farming/uploaded_files/no-image.png`
 
                 return item
             })
@@ -56,12 +56,12 @@ const galleryController = {
             const BASE_URL = `${req.protocol}://${host}`
 
             gallery.gallery_image = gallery.gallery_image
-                ? `${BASE_URL}/plant/uploaded_files/gallery/${gallery.gallery_image}`
-                : `${BASE_URL}/plant/uploaded_files/no-image.png`
+                ? `${BASE_URL}/poultry_farming/uploaded_files/gallery/${gallery.gallery_image}`
+                : `${BASE_URL}/poultry_farming/uploaded_files/no-image.png`
 
             return res.json(convertNulls({
                 success: true,
-                gallery
+                gallery000000000000000
             }))
 
         } catch (err) {
@@ -74,4 +74,4 @@ const galleryController = {
     }
 }
 
-module.exports = galleryController
+module.exports = galleryController 
