@@ -11,4 +11,4 @@ const headerModel = {
     }
 }
 
-module.exports = headerModel
+module.exports = {headerModel}

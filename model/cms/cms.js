@@ -75,4 +75,4 @@ const pageModel = {
     }
 }
 
-module.exports = pageModel
+module.exports = { pageModel }

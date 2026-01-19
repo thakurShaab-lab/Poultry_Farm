@@ -1,7 +1,7 @@
-const galleryModel = require('../../model/gallery/gallery')
-const headerModel = require('../../model/banner/banner')
-const pageModel = require('../../model/cms/cms')
-const faqModel = require('../../model/faq/faq')
+const {galleryModel} = require('../../model/gallery/gallery')
+const {headerModel} = require('../../model/banner/banner')
+const {pageModel} = require('../../model/cms/cms')
+const {faqModel} = require('../../model/faq/faq')
 const { convertNulls } = require('../../utils/convertNull')
 
 const homeController = {

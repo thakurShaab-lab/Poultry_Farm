@@ -1,4 +1,4 @@
-const galleryModel = require('../../model/gallery/gallery')
+const {galleryModel} = require('../../model/gallery/gallery')
 const { convertNulls } = require('../../utils/convertNull')
 
 const galleryController = {

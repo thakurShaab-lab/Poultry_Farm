@@ -40,4 +40,4 @@ const galleryModel = {
     }
 }
 
-module.exports = galleryModel
+module.exports = {galleryModel}

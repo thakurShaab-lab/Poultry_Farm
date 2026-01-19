@@ -41,4 +41,4 @@ const faqModel = {
     }
 }
 
-module.exports = faqModel
+module.exports = {faqModel}
