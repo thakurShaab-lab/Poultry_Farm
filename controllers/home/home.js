@@ -1,7 +1,8 @@
-const {galleryModel} = require('../../model/gallery/gallery')
-const {headerModel} = require('../../model/banner/banner')
-const {pageModel} = require('../../model/cms/cms')
-const {faqModel} = require('../../model/faq/faq')
+const { galleryModel } = require('../../model/gallery/gallery')
+const { headerModel } = require('../../model/banner/banner')
+const { pageModel } = require('../../model/cms/cms')
+const { faqModel } = require('../../model/faq/faq')
+// const contactModel = require('../../model/enquiry/contact')
 const { convertNulls } = require('../../utils/convertNull')
 
 const homeController = {
@@ -12,6 +13,11 @@ const homeController = {
 
             const headers = await headerModel.getActive()
             const headerData = headers.map(h => ({
+                // header_title: h.line_one,
+                // header_desc1: h.line_two,
+                // header_desc2: h.line_three,
+                // header_desc3: h.line_four,
+                // header_desc4: h.line_five,
                 header_image: `${BASE_URL}/poultry_farming/uploaded_files/header_images/${h.header_image}`,
                 header_url: h.header_url,
             }))
@@ -58,8 +64,12 @@ const homeController = {
 
             const stats = await pageModel.getHomeStats()
 
+            // const contactData = await contactModel.getContactData()
+
             return res.status(201).json(convertNulls({
                 success: true,
+                // contact_phone: contactData.phone,
+                // contact_email: contactData.email,
                 home_data: {
                     headers: headerData,
                     about_us: aboutUs,
