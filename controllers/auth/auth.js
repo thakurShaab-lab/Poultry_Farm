@@ -235,6 +235,13 @@ const authController = {
                 })
             }
 
+            if (user.status === '2') {
+                return res.status(201).json({
+                    success: false,
+                    message: 'Account does not exists or deleted.'
+                })
+            }
+
             if (user.is_blocked === '1') {
                 return res.status(201).json({
                     success: false,
