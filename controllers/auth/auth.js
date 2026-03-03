@@ -168,13 +168,6 @@ const authController = {
 
             const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS)
 
-            console.log({
-                app_id,
-                app_type,
-                device_id
-            })
-
-
             const data = {
                 user_name: email,
                 password: hashedPassword,
