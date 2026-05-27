@@ -1,8 +1,7 @@
-const { galleryModel } = require('../../model/gallery/gallery')
-const { headerModel } = require('../../model/banner/banner')
-const { pageModel } = require('../../model/cms/cms')
-const { faqModel } = require('../../model/faq/faq')
-// const contactModel = require('../../model/enquiry/contact')
+const {galleryModel} = require('../../model/gallery/gallery')
+const {headerModel} = require('../../model/banner/banner')
+const {pageModel} = require('../../model/cms/cms')
+const {faqModel} = require('../../model/faq/faq')
 const { convertNulls } = require('../../utils/convertNull')
 
 const homeController = {
@@ -13,12 +12,7 @@ const homeController = {
 
             const headers = await headerModel.getActive()
             const headerData = headers.map(h => ({
-                // header_title: h.line_one,
-                // header_desc1: h.line_two,
-                // header_desc2: h.line_three,
-                // header_desc3: h.line_four,
-                // header_desc4: h.line_five,
-                header_image: `${BASE_URL}/poultry_farming/uploaded_files/header_images/${h.header_image}`,
+                header_image: `${BASE_URL}/uploaded_files/header_images/${h.header_image}`,
                 header_url: h.header_url,
             }))
 
@@ -28,8 +22,8 @@ const homeController = {
                 .map((item, index) => ({
                     id: item.gallery_id,
                     image_url: item.gallery_image
-                        ? `${BASE_URL}/poultry_farming/uploaded_files/gallery/${item.gallery_image}`
-                        : `${BASE_URL}/poultry_farming/uploaded_files/no-image.png`
+                        ? `${BASE_URL}/uploaded_files/gallery/${item.gallery_image}`
+                        : `${BASE_URL}/uploaded_files/no-image.png`
                 }))
 
             const videos = galleryData.data
@@ -37,8 +31,8 @@ const homeController = {
                 .map((item, index) => ({
                     id: item.gallery_id,
                     video_url: item.embed_code,
-                    video_thumb: item.gallery_image ? `${BASE_URL}/poultry_farming/uploaded_files/gallery/${item.gallery_image}`
-                        : `${BASE_URL}/poultry_farming/uploaded_files/no-image.png`,
+                    video_thumb: item.gallery_image ? `${BASE_URL}/uploaded_files/gallery/${item.gallery_image}`
+                        : `${BASE_URL}/uploaded_files/no-image.png`,
                 }))
 
             const faqs = await faqModel.getAll()
@@ -57,19 +51,15 @@ const homeController = {
                 description: aboutPage.page_description,
                 short_description: aboutPage.page_short_description,
                 image: aboutPage.image
-                    ? `${BASE_URL}/poultry_farming/uploaded_files/cms/${aboutPage.image}`
-                    : `${BASE_URL}/poultry_farming/uploaded_files/no-image.png`,
+                    ? `${BASE_URL}/uploaded_files/cms/${aboutPage.image}`
+                    : `${BASE_URL}/uploaded_files/no-image.png`,
                 updated_date: aboutPage.page_updated_date
             } : ''
 
             const stats = await pageModel.getHomeStats()
 
-            // const contactData = await contactModel.getContactData()
-
             return res.status(201).json(convertNulls({
                 success: true,
-                // contact_phone: contactData.phone,
-                // contact_email: contactData.email,
                 home_data: {
                     headers: headerData,
                     about_us: aboutUs,

@@ -54,11 +54,11 @@ app.use(sanitize)
 app.use('/uploaded_files', express.static(path.join(__dirname, 'poultry_farming')))
 
 app.get('/', (req, res) => {
-    res.send('Welcome to Plant Master Web Services Developed on Node.JS, Express.js, and MySQL !!!!')
+    res.send('Welcome to Poultry Farm Web Services Developed on Node.JS, Express.js, and MySQL !!!!')
 })
 
 app.get('/api', (req, res) => {
-    res.send('Plant Master APIs')
+    res.send('Poultry Farm APIs')
 })
 app.use('/api/auth', authRoutes)
 app.use('/api/cms', cmsRoutes)

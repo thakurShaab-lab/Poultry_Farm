@@ -8,7 +8,7 @@ const { upload } = require('../../utils/upload')
 const router = express.Router()
 
 router.post('/register', (req, res, next) => {
-    upload('customer_images').single('customer_photo')(req, res, (err) => {
+    upload('documnts_frm').single('customer_photo')(req, res, (err) => {
         if (err) {
             return res.status(201).json({
                 success: false,

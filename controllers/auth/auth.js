@@ -168,6 +168,13 @@ const authController = {
 
             const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS)
 
+            console.log({
+                app_id,
+                app_type,
+                device_id
+            })
+
+
             const data = {
                 user_name: email,
                 password: hashedPassword,
@@ -178,7 +185,7 @@ const authController = {
                 location: location.location_name,
                 location_id: location.location_id,
                 address,
-                customer_photo: req.file ? req.file.filename : null,
+                customer_photo: null,
                 status: '1',
                 is_verified: '0',
                 login_type: 'normal',
@@ -228,7 +235,7 @@ const authController = {
                 })
             }
 
-            if (user.status === '2') {
+	if (user.status === '2') {
                 return res.status(201).json({
                     success: false,
                     message: 'Account does not exists or deleted.'
@@ -439,7 +446,7 @@ const authController = {
             if (user.customer_photo) {
                 const host = req.get("host").split(":")[0]
                 const baseURL = `${req.protocol}://${host}`
-                image_url = `${baseURL}/poultry_farming/uploaded_files/customer_images/${user.customer_photo}`
+                image_url = `${baseURL}/uploaded_files/customer_images/${user.customer_photo}`
             }
 
             const cleanUser = {}
@@ -518,7 +525,7 @@ const authController = {
 
                 const user = await authModel.findById(userId)
                 if (user?.customer_photo) {
-                    const uploadDir = path.join(__dirname, "../../../poultry_farming/uploaded_files/customer_images", user.customer_photo)
+                    const uploadDir = path.join(__dirname, "/home/annaamfarm/public_html/uploaded_files/customer_images", user.customer_photo)
                     if (fs.existsSync(uploadDir)) {
                         fs.unlinkSync(uploadDir)
                     }
@@ -569,7 +576,7 @@ const authController = {
 
             if (user.customer_photo) {
                 const filePath = path.join(
-                    'C:/Users/weblink/Desktop/Poultry_Farm/poultry_farming/uploaded_files/customer_images',
+                    '/home/annaamfarm/public_html/uploaded_files/uploaded_files/customer_images',
                     user.customer_photo
                 )
                 if (fs.existsSync(filePath)) {

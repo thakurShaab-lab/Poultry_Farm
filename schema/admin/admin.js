@@ -62,7 +62,7 @@ const tbl_admin = mysqlTable('tbl_admin', {
     phone: varchar('phone', { length: 50 })
         .default(null),
 
-    mobile: varchar('mobile', { length: 15 })
+    mobile: varchar('mobile', { length: 155 })
         .default(null),
 
     website: varchar('website', { length: 255 })
