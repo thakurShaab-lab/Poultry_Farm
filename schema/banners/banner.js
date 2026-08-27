@@ -1,10 +1,4 @@
-const {
-    mysqlTable,
-    int,
-    varchar,
-    datetime,
-    mysqlEnum,
-} = require('drizzle-orm/mysql-core')
+const { mysqlTable, int, varchar, datetime, mysqlEnum, } = require('drizzle-orm/mysql-core')
 
 const wl_header_images = mysqlTable('wl_header_images', {
     id: int('id')

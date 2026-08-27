@@ -5,8 +5,7 @@ const wl_order = mysqlTable("wl_order", {
 
   customers_id: int("customers_id").notNull().default(0),
 
-  customer_type: varchar("customer_type", { length: 100 })
-    .default("Member"),
+  customer_type: varchar("customer_type", { length: 100 }).default("Member"),
 
   invoice_number: varchar("invoice_number", { length: 30 }).notNull(),
 
